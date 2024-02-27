@@ -463,6 +463,11 @@ class SetCriterion(nn.Module):
         
         self.readout_res = args.readout_res
         
+        self.nc_lh = np.load(f"data/noise_ceiling/subj01/lh.npy")
+        self.nc_rh = np.load(f"data/noise_ceiling/subj01/rh.npy")
+
+        
+        
                 # Load the ROI classes mapping dictionaries
         roi_mapping_files = ['mapping_prf-visualrois.npy', 'mapping_floc-bodies.npy',
             'mapping_floc-faces.npy', 'mapping_floc-places.npy',
@@ -638,6 +643,7 @@ class SetCriterion(nn.Module):
         """
         assert 'pred_recons' in outputs        
 
+        print("############## Entered Loss Recons #################")
         
         target_masks = samples.tensors
         target_masks = target_masks.flatten(1) # [128,3*64*64]      
@@ -659,7 +665,21 @@ class SetCriterion(nn.Module):
         
 #         target_masks = target_masks.view(src_masks.shape)
         
+        #### Seems not necessary ####
+        # MSE Loss
         loss_recon = nn.MSELoss()(src_masks, target_masks)
+        
+        # MAE Loss
+        # loss_recon = nn.L1Loss()(src_masks, target_masks)
+
+        # Huber Loss
+        #loss_recon = nn.HuberLoss(delta = 1.35)(src_masks, target_masks)
+
+        # RMSE Loss
+        #torch.sqrt(nn.SmoothL1Loss()(src_masks, target_masks))
+        
+        
+        
         losses = {'loss_recon': loss_recon}
 
         log=False
@@ -707,8 +727,65 @@ class SetCriterion(nn.Module):
                 targets['lh_f'] = (1*(lh_rois>0)) * targets['lh_f']
                 targets['rh_f'] = (1*(rh_rois>0)) * targets['rh_f']
         
+        
+        
+        # MSE Loss
         loss_lh = nn.MSELoss()(outputs['lh_f_pred'], targets['lh_f'])
         loss_rh = nn.MSELoss()(outputs['rh_f_pred'], targets['rh_f'])
+        
+        # MAE Loss
+        #loss_lh = nn.L1Loss()(outputs['lh_f_pred'], targets['lh_f'])
+        #loss_rh = nn.L1Loss()(outputs['rh_f_pred'], targets['rh_f'])
+
+        # MBE Loss - not used  
+        #loss_lh = np.mean(outputs['lh_f_pred'] - targets['lh_f'])
+        #loss_rh = np.mean(outputs['rh_f_pred'] - targets['rh_f'])
+                
+        # Poisson NLL Loss
+        #loss_lh = nn.PoissonNLLLoss()(outputs['lh_f_pred'], targets['lh_f'])
+        #loss_rh = nn.PoissonNLLLoss()(outputs['rh_f_pred'], targets['rh_f'])
+
+        # SmoothL1Loss
+        #loss_lh = nn.SmoothL1Loss()(outputs['lh_f_pred'], targets['lh_f'])
+        #loss_rh = nn.SmoothL1Loss()(outputs['rh_f_pred'], targets['rh_f'])
+                
+        # Huber Loss
+        #loss_lh = nn.HuberLoss(delta = 0.95)(outputs['lh_f_pred'], targets['lh_f'])
+        #loss_rh = nn.HuberLoss(delta = 0.95)(outputs['rh_f_pred'], targets['rh_f'])
+
+        # RMSE Loss V1
+        #loss_lh = torch.sqrt(nn.SmoothL1Loss()(outputs['lh_f_pred'], targets['lh_f']))
+        #loss_rh = torch.sqrt(nn.SmoothL1Loss()(outputs['rh_f_pred'], targets['rh_f']))
+                
+        # RMSE Loss V2 (correct)
+        #loss_lh = torch.sqrt(nn.MSELoss()(outputs['lh_f_pred'], targets['lh_f']))
+        #loss_rh = torch.sqrt(nn.MSELoss()(outputs['rh_f_pred'], targets['rh_f']))
+                
+        # Mean Squared Pearson Correlation Loss
+        #lh_diff_out = outputs['lh_f_pred'] - torch.mean(outputs['lh_f_pred'])
+        #lh_diff_tar = targets['lh_f'] - torch.mean(targets['lh_f'])
+        #rh_diff_out = outputs['rh_f_pred'] - torch.mean(outputs['rh_f_pred'])
+        #rh_diff_tar = targets['rh_f'] - torch.mean(targets['rh_f'])
+
+        #corr_lh = (torch.sum(lh_diff_out * lh_diff_tar)) / \
+        #    ( torch.sqrt(torch.sum(lh_diff_out ** 2) * 
+        #                 torch.sum(lh_diff_tar ** 2)) + 1e-8)
+        #corr_rh = (torch.sum(rh_diff_out * rh_diff_tar)) / \
+        #    ( torch.sqrt(torch.sum(rh_diff_out ** 2) * 
+        #                 torch.sum(rh_diff_tar ** 2)) + 1e-8)
+        
+        #corr_lh = 1 - (corr_lh + 1) / 2
+        #corr_rh = 1 - (corr_rh + 1) / 2
+
+        #self.nc_lh[self.nc_lh == 0] = 1
+        #self.nc_rh[self.nc_rh == 0] = 1
+
+        #loss_lh = torch.mean(corr_lh ** 2 / \
+        #            torch.from_numpy(self.nc_lh).to(corr_lh.device)) 
+        #loss_rh = torch.mean(corr_rh ** 2 / \
+        #            torch.from_numpy(self.nc_rh).to(corr_rh.device)) 
+
+        
         losses = {'loss_mse_fmri': loss_lh+loss_rh}
 
         log=False

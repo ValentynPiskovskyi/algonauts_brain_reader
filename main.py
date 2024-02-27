@@ -32,11 +32,11 @@ import pprint
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
-    parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--lr', default=1e-4, type=float) #1e-3 #1e-5
     parser.add_argument('--lr_backbone', default=1e-5, type=float)
-    parser.add_argument('--batch_size', default=32, type=int)
+    parser.add_argument('--batch_size', default=32, type=int) #16 #128
     parser.add_argument('--weight_decay', default=1e-4, type=float)
-    parser.add_argument('--epochs', default=20, type=int)
+    parser.add_argument('--epochs', default=20, type=int) #30 #100
     parser.add_argument('--lr_drop', default=200, type=int)
     parser.add_argument('--clip_max_norm', default=0.1, type=float,
                         help='gradient clipping max norm')
@@ -45,7 +45,7 @@ def get_args_parser():
     ## algonauts params
     parser.add_argument('--subj', default=1, type=int)  # 5 is a good test sub
     parser.add_argument('--run', default=1, type=int)  # 5 is a good test sub
-    parser.add_argument('--data_dir', default='../algonauts_2023_challenge_data/', type=str)
+    parser.add_argument('--data_dir', default='/media/data1/algonauts_2023_challenge_data', type=str)
     parser.add_argument('--parent_submission_dir', default='../algonauts_2023_challenge_submission/', type=str)
     
     parser.add_argument('--saved_feats', default=None, type=str) #'dinov2q'
@@ -147,7 +147,7 @@ def get_args_parser():
 
     parser.add_argument('--output_dir', default='./results/',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--device', default='cuda:0',
+    parser.add_argument('--device', default='cuda:0', #'cuda: 1'
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
@@ -155,7 +155,7 @@ def get_args_parser():
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
 
-    parser.add_argument('--save_model', default=0, type=int) 
+    parser.add_argument('--save_model', default=1, type=int) #default = 0
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -556,7 +556,8 @@ def main(args):
             for r in range(len(rh_roi_correlation))]
         
         val_mean_corr = (lh_mean_roi_correlation[-1] + rh_mean_roi_correlation[-1]) / 2
-        
+        print('lh_mean_roi_correlation:', lh_mean_roi_correlation[-1]) 
+        print('rh_mean_roi_correlation:', rh_mean_roi_correlation[-1]) 
         print('val_mean_corr:', val_mean_corr ) 
         print('shape of rh_fmri_val_pred', rh_fmri_val_pred.shape)
         #print(val_acc)
@@ -576,6 +577,9 @@ def main(args):
                     f.write(f'epoch {epoch}, val_mean_corr: {val_mean_corr}, val_loss: {val_loss} \n') 
         
                 if args.save_model:
+                    print("\n------------------------------------------------------------------\n")
+                    print("Model saved")
+                    print("\n------------------------------------------------------------------\n")
                     for checkpoint_path in checkpoint_paths:
                         utils.save_on_master({
                             'model': model.state_dict(),
